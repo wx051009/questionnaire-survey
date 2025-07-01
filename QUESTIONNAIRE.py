@@ -125,4 +125,7 @@ if st.sidebar.button("执行 TrueSkill 打分"):
         st.dataframe(final_scores)
     else:
         st.warning("尚未收集到投票数据。")
-
+        
+if os.path.exists(vote_result_csv):
+    with open(vote_result_csv, "rb") as f:
+        st.download_button("📥 下载投票数据", f, file_name="vote_results.csv")
