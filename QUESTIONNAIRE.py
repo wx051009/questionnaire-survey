@@ -4,8 +4,8 @@ import random
 import streamlit as st
 import trueskill
 import zipfile
-with zipfile.ZipFile('images.zip', 'r') as zip_ref:
-    zip_ref.extractall('images')
+with zipfile.ZipFile('selected_images.zip', 'r') as zip_ref:
+    zip_ref.extractall('selected_images')
 
 # --- 参数配置 ---
 csv_path = r"D:\Desktop\wx-2article\code\community_cluster_result.csv"     # 聚类结果CSV文件
