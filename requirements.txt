@@ -1,0 +1,5 @@
+pandas
+os
+random
+streamlit
+trueskill
