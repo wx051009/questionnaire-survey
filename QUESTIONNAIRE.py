@@ -76,7 +76,8 @@ if st.session_state.user_type:
 
         for i in range(4):
             with col[i]:
-                st.image(os.path.join(image_root, options[i]), caption=chr(65 + i))
+                img_path = os.path.join(image_root, options[i])
+                st.image(img_path, caption=chr(65 + i))
                 if st.button(f"选择 {chr(65 + i)}", key=f"btn_{question_id}_{i}"):
                     choice = chr(65 + i)
                     st.session_state.responses[question_id] = {
