@@ -8,9 +8,9 @@ import zipfile
 #     zip_ref.extractall('selected_images')
 
 # --- 参数配置 ---
-csv_path = r"D:\Desktop\wx-2article\code\community_cluster_result.csv"     # 聚类结果CSV文件
-image_root = r"D:\Desktop\wx-2article\selected_images"                          # 图像根目录
-question_bank_csv = r"D:\Desktop\wx-2article\code\question_bank.csv"        # 题库文件
+csv_path = r"community_cluster_result.csv"     # 聚类结果CSV文件
+image_root = r"selected_images"                          # 图像根目录
+question_bank_csv = r"question_bank.csv"        # 题库文件
 vote_result_csv = "vote_results.csv"           # 投票记录文件
 
 # --- 加载题库 ---
