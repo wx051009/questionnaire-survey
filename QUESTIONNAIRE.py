@@ -28,7 +28,6 @@ if "current_qid" not in st.session_state:
 
 # --- 页面布局 ---
 st.set_page_config(layout="wide")
-st.title("老年人步行环境感知问卷系统")
 
 # --- 特殊彩蛋页面 ---
 if st.session_state.user_id == "LZB1205":
@@ -51,7 +50,7 @@ if st.session_state.user_id == "LZB1205":
     st.stop()
 
 # --- 0. 首页说明引导页 ---
-if not st.session_state.agree:
+if not st.session_state.agree and not st.session_state.user_id:
     st.markdown("""
     ### 📝 欢迎参与本调查问卷
     本问卷旨在收集不同人群对城市街景的感知判断，用于构建“老年友好型步行环境地图”。
@@ -62,11 +61,10 @@ if not st.session_state.agree:
     """)
     if st.button("我已阅读并同意，开始答题"):
         st.session_state.agree = True
-    st.stop()
+        st.experimental_rerun()
 
 # --- 1. 用户登录 ---
-# 1. 昵称输入 + 重复名检测
-if not st.session_state.user_id:
+if st.session_state.agree and not st.session_state.user_id:
     user_id = st.text_input("请输入您的昵称（如 张叔、李阿姨、专家王教授）")
     if st.button("进入问卷"):
         if os.path.exists(vote_result_csv):
@@ -78,13 +76,7 @@ if not st.session_state.user_id:
             st.warning("请输入有效昵称。")
         else:
             st.session_state.user_id = user_id.strip()
-
-# 2. 登录成功后，强制检查是否重复提交
-# if st.session_state.user_id and os.path.exists(vote_result_csv):
-#     df_existing = pd.read_csv(vote_result_csv)
-#     if st.session_state.user_id in df_existing.get("user_id", []).values:
-#         st.warning("⚠️ 您已提交过问卷，无需重复作答。")
-#         st.stop()
+            st.experimental_rerun()
 
 # --- 2. 身份选择 ---
 if st.session_state.user_id and not st.session_state.user_type:
@@ -93,21 +85,24 @@ if st.session_state.user_id and not st.session_state.user_type:
     with col1:
         if st.button("我是专家"):
             st.session_state.user_type = "expert"
+            st.experimental_rerun()
     with col2:
         if st.button("我是老年人"):
             st.session_state.user_type = "elder"
+            st.experimental_rerun()
 
 # --- 3. 老年人选择年龄段 ---
 if st.session_state.user_type == "elder" and not st.session_state.age_group:
     st.subheader("请选择您的年龄阶段：")
     st.session_state.age_group = st.radio("年龄段：", ["60-64", "65-69", "70-74", "75-79", "80+"])
+    st.experimental_rerun()
 
-# --- 4. 答题主界面 ---
+# --- 4. 主问卷答题页面 ---
 if st.session_state.user_type and (st.session_state.user_type != "elder" or st.session_state.age_group):
+    st.title("老年人步行环境感知问卷系统")
     st.markdown("---")
     st.header("请开始答题：")
 
-    # 左侧进度栏
     with st.sidebar:
         st.subheader("📋 答题进度")
         for qid in question_df["question_id"]:
@@ -116,8 +111,8 @@ if st.session_state.user_type and (st.session_state.user_type != "elder" or st.s
             btn_label = f"🟢 {label}" if color == "green" else f"⚪ {label}"
             if st.button(btn_label, key=f"jump_{qid}"):
                 st.session_state.current_qid = qid
+                st.experimental_rerun()
 
-    # 判断是否完成
     if len(st.session_state.responses) == total_questions:
         st.success("🎉 恭喜您已完成所有问卷！感谢参与。")
         st.balloons()
@@ -145,10 +140,9 @@ if st.session_state.user_type and (st.session_state.user_type != "elder" or st.s
                         "user_type": st.session_state.user_type,
                         "age_group": st.session_state.age_group if st.session_state.user_type == "elder" else "N/A"
                     }
-                    st.success(f"你选择了图像 {chr(65 + i)}，题目 {qid} 已完成。")
                     st.session_state.current_qid += 1
+                    st.experimental_rerun()
 
-    # 保存数据
     if st.session_state.responses:
         df = pd.DataFrame.from_dict(st.session_state.responses, orient="index")
         df.to_csv(vote_result_csv, mode="a", header=not os.path.exists(vote_result_csv), index=False)
@@ -157,5 +151,4 @@ if st.session_state.user_type and (st.session_state.user_type != "elder" or st.s
 if st.session_state.user_id == "ss" and os.path.exists(vote_result_csv):
     with open(vote_result_csv, "rb") as f:
         st.sidebar.download_button("📥 下载所有投票数据", f, file_name="vote_results.csv")
-
 
