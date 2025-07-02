@@ -31,23 +31,19 @@ st.set_page_config(layout="wide")
 
 # --- 特殊彩蛋页面 ---
 if st.session_state.user_id == "LZB1205":
+    # 使用本地图像作为前置图
+    st.image("coloregg.jpg", use_column_width=True)
+
+    # 居中显示文字
     st.markdown("""
-        <style>
-        .stApp {
-            background-image: url("coloregg.jpg");
-            background-size: cover;
-            background-repeat: no-repeat;
-            background-attachment: fixed;
-        }
-        </style>
+    <div style='text-align: center; padding: 40px; background-color: rgba(0,0,0,0.6); border-radius: 15px;'>
+        <h2 style='color: white;'>WX 永远爱 LZB ❤❤</h2>
+        <h3 style='color: white;'>祝 LZB 同学考公上岸 🏆</h3>
+    </div>
     """, unsafe_allow_html=True)
-    st.markdown("""
-    <h2 style='text-align: center; color: white;'>
-        WX永远爱LZB ❤❤<br>
-        祝 LZB 同学考公上岸 🏆
-    </h2>
-    """, unsafe_allow_html=True)
+
     st.stop()
+
 
 # --- 0. 首页说明引导页 ---
 if not st.session_state.agree and not st.session_state.user_id:
