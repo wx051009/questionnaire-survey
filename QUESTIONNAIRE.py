@@ -80,11 +80,11 @@ if not st.session_state.user_id:
             st.session_state.user_id = user_id.strip()
 
 # 2. 登录成功后，强制检查是否重复提交
-if st.session_state.user_id and os.path.exists(vote_result_csv):
-    df_existing = pd.read_csv(vote_result_csv)
-    if st.session_state.user_id in df_existing.get("user_id", []).values:
-        st.warning("⚠️ 您已提交过问卷，无需重复作答。")
-        st.stop()
+# if st.session_state.user_id and os.path.exists(vote_result_csv):
+#     df_existing = pd.read_csv(vote_result_csv)
+#     if st.session_state.user_id in df_existing.get("user_id", []).values:
+#         st.warning("⚠️ 您已提交过问卷，无需重复作答。")
+#         st.stop()
 
 # --- 2. 身份选择 ---
 if st.session_state.user_id and not st.session_state.user_type:
