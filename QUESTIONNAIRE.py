@@ -61,7 +61,7 @@ if not st.session_state.agree and not st.session_state.user_id:
     """)
     if st.button("我已阅读并同意，开始答题"):
         st.session_state.agree = True
-        st.experimental_rerun()
+        st.rerun()
 
 # --- 1. 用户登录 ---
 if st.session_state.agree and not st.session_state.user_id:
