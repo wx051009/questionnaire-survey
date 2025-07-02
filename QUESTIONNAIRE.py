@@ -76,7 +76,7 @@ if st.session_state.agree and not st.session_state.user_id:
             st.warning("请输入有效昵称。")
         else:
             st.session_state.user_id = user_id.strip()
-            st.experimental_rerun()
+            st.rerun()
 
 # --- 2. 身份选择 ---
 if st.session_state.user_id and not st.session_state.user_type:
@@ -85,17 +85,17 @@ if st.session_state.user_id and not st.session_state.user_type:
     with col1:
         if st.button("我是专家"):
             st.session_state.user_type = "expert"
-            st.experimental_rerun()
+            st.rerun()
     with col2:
         if st.button("我是老年人"):
             st.session_state.user_type = "elder"
-            st.experimental_rerun()
+            st.rerun()
 
 # --- 3. 老年人选择年龄段 ---
 if st.session_state.user_type == "elder" and not st.session_state.age_group:
     st.subheader("请选择您的年龄阶段：")
     st.session_state.age_group = st.radio("年龄段：", ["60-64", "65-69", "70-74", "75-79", "80+"])
-    st.experimental_rerun()
+    st.rerun()
 
 # --- 4. 主问卷答题页面 ---
 if st.session_state.user_type and (st.session_state.user_type != "elder" or st.session_state.age_group):
@@ -111,7 +111,7 @@ if st.session_state.user_type and (st.session_state.user_type != "elder" or st.s
             btn_label = f"🟢 {label}" if color == "green" else f"⚪ {label}"
             if st.button(btn_label, key=f"jump_{qid}"):
                 st.session_state.current_qid = qid
-                st.experimental_rerun()
+                st.rerun()
 
     if len(st.session_state.responses) == total_questions:
         st.success("🎉 恭喜您已完成所有问卷！感谢参与。")
@@ -141,7 +141,7 @@ if st.session_state.user_type and (st.session_state.user_type != "elder" or st.s
                         "age_group": st.session_state.age_group if st.session_state.user_type == "elder" else "N/A"
                     }
                     st.session_state.current_qid += 1
-                    st.experimental_rerun()
+                    st.rerun()
 
     if st.session_state.responses:
         df = pd.DataFrame.from_dict(st.session_state.responses, orient="index")
