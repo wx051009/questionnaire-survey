@@ -2,35 +2,92 @@ import pandas as pd
 import os
 import random
 import streamlit as st
-import trueskill
-import zipfile
-# with zipfile.ZipFile('selected_images.zip', 'r') as zip_ref:
-#     zip_ref.extractall('selected_images')
 
-# --- 参数配置 ---
-csv_path = r"community_cluster_result.csv"     # 聚类结果CSV文件
-image_root = r"selected_images"                          # 图像根目录
-question_bank_csv = r"question_bank.csv"        # 题库文件
-vote_result_csv = "vote_results.csv"           # 投票记录文件
+# --- 配置参数 ---
+image_root = "selected_images"
+question_bank_csv = "question_bank.csv"
+vote_result_csv = "vote_results.csv"
 
 # --- 加载题库 ---
 question_df = pd.read_csv(question_bank_csv)
 total_questions = len(question_df)
 
-# --- 初始化会话状态 ---
+# --- 初始化 session ---
 if "responses" not in st.session_state:
     st.session_state.responses = {}
+if "user_id" not in st.session_state:
+    st.session_state.user_id = None
 if "user_type" not in st.session_state:
     st.session_state.user_type = None
 if "age_group" not in st.session_state:
     st.session_state.age_group = None
+if "agree" not in st.session_state:
+    st.session_state.agree = False
+if "current_qid" not in st.session_state:
+    st.session_state.current_qid = 1
 
-# --- 设置网页结构 ---
+# --- 页面布局 ---
 st.set_page_config(layout="wide")
-st.title("老年人步行性问卷评分系统")
+st.title("老年人步行环境感知问卷系统")
 
-# --- 用户身份选择 ---
-if st.session_state.user_type is None:
+# --- 特殊彩蛋页面 ---
+if st.session_state.user_id == "LZB1205":
+    st.markdown("""
+        <style>
+        .stApp {
+            background-image: url("coloregg.jpg");
+            background-size: cover;
+            background-repeat: no-repeat;
+            background-attachment: fixed;
+        }
+        </style>
+    """, unsafe_allow_html=True)
+    st.markdown("""
+    <h2 style='text-align: center; color: white;'>
+        WX永远爱LZB ❤❤<br>
+        祝 LZB 同学考公上岸 🏆
+    </h2>
+    """, unsafe_allow_html=True)
+    st.stop()
+
+# --- 0. 首页说明引导页 ---
+if not st.session_state.agree:
+    st.markdown("""
+    ### 📝 欢迎参与本调查问卷
+    本问卷旨在收集不同人群对城市街景的感知判断，用于构建“老年友好型步行环境地图”。
+
+    - 问卷共计约 75 题，每题展示 4 张街景图像，选择您认为"最适合老年人步行"的一张。
+    - 预计耗时 5~8 分钟。
+    - 所有信息仅用于研究用途，不会对外披露。
+    """)
+    if st.button("我已阅读并同意，开始答题"):
+        st.session_state.agree = True
+    st.stop()
+
+# --- 1. 用户登录 ---
+# 1. 昵称输入 + 重复名检测
+if not st.session_state.user_id:
+    user_id = st.text_input("请输入您的昵称（如 张叔、李阿姨、专家王教授）")
+    if st.button("进入问卷"):
+        if os.path.exists(vote_result_csv):
+            df_existing = pd.read_csv(vote_result_csv)
+            if user_id.strip() in df_existing.get("user_id", []).values:
+                st.error("❌ 用户名已被占用，请更换一个昵称。")
+                st.stop()
+        if user_id.strip() == "":
+            st.warning("请输入有效昵称。")
+        else:
+            st.session_state.user_id = user_id.strip()
+
+# 2. 登录成功后，强制检查是否重复提交
+if st.session_state.user_id and os.path.exists(vote_result_csv):
+    df_existing = pd.read_csv(vote_result_csv)
+    if st.session_state.user_id in df_existing.get("user_id", []).values:
+        st.warning("⚠️ 您已提交过问卷，无需重复作答。")
+        st.stop()
+
+# --- 2. 身份选择 ---
+if st.session_state.user_id and not st.session_state.user_type:
     st.subheader("请选择您的身份：")
     col1, col2 = st.columns(2)
     with col1:
@@ -40,92 +97,65 @@ if st.session_state.user_type is None:
         if st.button("我是老年人"):
             st.session_state.user_type = "elder"
 
-# --- 年龄段选择（仅限老年人） ---
-if st.session_state.user_type == "elder" and st.session_state.age_group is None:
+# --- 3. 老年人选择年龄段 ---
+if st.session_state.user_type == "elder" and not st.session_state.age_group:
     st.subheader("请选择您的年龄阶段：")
     st.session_state.age_group = st.radio("年龄段：", ["60-64", "65-69", "70-74", "75-79", "80+"])
 
-# --- 进入答题界面 ---
-if st.session_state.user_type:
+# --- 4. 答题主界面 ---
+if st.session_state.user_type and (st.session_state.user_type != "elder" or st.session_state.age_group):
     st.markdown("---")
     st.header("请开始答题：")
 
-    # 左侧展示进度和导航
+    # 左侧进度栏
     with st.sidebar:
-        st.subheader("答题进度：")
+        st.subheader("📋 答题进度")
         for qid in question_df["question_id"]:
-            if qid in st.session_state.responses:
-                st.markdown(f"<span style='color:green'>✔ 题目 {qid}</span>", unsafe_allow_html=True)
-            else:
-                st.markdown(f"<span style='color:gray'>❌ 题目 {qid}</span>", unsafe_allow_html=True)
+            label = f"题 {qid}"
+            color = "green" if qid in st.session_state.responses else "gray"
+            btn_label = f"🟢 {label}" if color == "green" else f"⚪ {label}"
+            if st.button(btn_label, key=f"jump_{qid}"):
+                st.session_state.current_qid = qid
 
-    # 显示完成提示（全部答完）
+    # 判断是否完成
     if len(st.session_state.responses) == total_questions:
-        st.success("🎉 恭喜，您已成功完成问卷！感谢您的参与。")
+        st.success("🎉 恭喜您已完成所有问卷！感谢参与。")
+        st.balloons()
     else:
-        # 主区域选择题目编号
-        question_id = st.number_input("请输入题号进行作答：", min_value=1, max_value=total_questions, step=1)
-        current_row = question_df[question_df["question_id"] == question_id].iloc[0]
-
-        st.subheader(f"题目 {question_id}")
+        qid = st.session_state.current_qid
+        current_row = question_df[question_df["question_id"] == qid].iloc[0]
+        st.subheader(f"题目 {qid}")
         st.markdown("请选择以下哪张图像最适合老年人步行环境：")
-
         col = st.columns(4)
-        choice = None
         options = [current_row["image_A"], current_row["image_B"], current_row["image_C"], current_row["image_D"]]
 
         for i in range(4):
             with col[i]:
                 img_path = os.path.join(image_root, options[i])
                 st.image(img_path, caption=chr(65 + i))
-                if st.button(f"选择 {chr(65 + i)}", key=f"btn_{question_id}_{i}"):
-                    choice = chr(65 + i)
-                    st.session_state.responses[question_id] = {
-                        "question_id": question_id,
+                if st.button(f"选择 {chr(65 + i)}", key=f"btn_{qid}_{i}"):
+                    st.session_state.responses[qid] = {
+                        "user_id": st.session_state.user_id,
+                        "question_id": qid,
                         "image_A": current_row["image_A"],
                         "image_B": current_row["image_B"],
                         "image_C": current_row["image_C"],
                         "image_D": current_row["image_D"],
-                        "selected": choice,
+                        "selected": chr(65 + i),
                         "user_type": st.session_state.user_type,
                         "age_group": st.session_state.age_group if st.session_state.user_type == "elder" else "N/A"
                     }
-                    st.success(f"你选择了图像 {choice}，题目 {question_id} 已完成。")
+                    st.success(f"你选择了图像 {chr(65 + i)}，题目 {qid} 已完成。")
+                    st.session_state.current_qid += 1
 
-    # 保存所有已答题记录
+    # 保存数据
     if st.session_state.responses:
         df = pd.DataFrame.from_dict(st.session_state.responses, orient="index")
-        df.to_csv(vote_result_csv, index=False)
+        df.to_csv(vote_result_csv, mode="a", header=not os.path.exists(vote_result_csv), index=False)
 
-# --- TrueSkill 打分部分 ---
-if st.sidebar.button("执行 TrueSkill 打分"):
-    if os.path.exists(vote_result_csv):
-        votes = pd.read_csv(vote_result_csv)
-        rating_dict = {}
-        env = trueskill.TrueSkill()
-
-        for _, row in votes.iterrows():
-            images = [row["image_A"], row["image_B"], row["image_C"], row["image_D"]]
-            selected = row[f"image_{row['selected']}"]
-            winner = selected
-            losers = [img for img in images if img != winner]
-
-            if winner not in rating_dict:
-                rating_dict[winner] = env.create_rating()
-            for l in losers:
-                if l not in rating_dict:
-                    rating_dict[l] = env.create_rating()
-                rating_dict[winner], rating_dict[l] = env.rate_1vs1(rating_dict[winner], rating_dict[l])
-
-        final_scores = pd.DataFrame(
-            [(img, r.mu, r.sigma) for img, r in rating_dict.items()],
-            columns=["image_path", "mu", "sigma"]
-        ).sort_values("mu", ascending=False)
-
-        st.dataframe(final_scores)
-    else:
-        st.warning("尚未收集到投票数据。")
-        
-if os.path.exists(vote_result_csv):
+# --- 管理员功能 ---
+if st.session_state.user_id == "ss" and os.path.exists(vote_result_csv):
     with open(vote_result_csv, "rb") as f:
-        st.download_button("📥 下载投票数据", f, file_name="vote_results.csv")
+        st.sidebar.download_button("📥 下载所有投票数据", f, file_name="vote_results.csv")
+
+
