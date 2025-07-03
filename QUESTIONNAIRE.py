@@ -65,7 +65,7 @@ if st.session_state.agree and not st.session_state.user_id:
     if st.button("进入问卷"):
         if os.path.exists(vote_result_csv):
             df_existing = pd.read_csv(vote_result_csv)
-            if user_id.strip() in df_existing.get("user_id", []).values:
+            if user_id.strip() != "ss" and user_id.strip() in df_existing.get("user_id", []).values:
                 st.error("❌ 用户名已被占用，请更换一个昵称。")
                 st.stop()
         if user_id.strip() == "":
